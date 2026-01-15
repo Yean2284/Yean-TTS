@@ -19,7 +19,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, lang, onSuccess 
   const [errorMsg, setErrorMsg] = useState('');
   const t = translations[lang].auth;
 
-  // Ayuda al desarrollador a configurar Google Cloud
+  // Detecta la URL base actual (incluyendo subcarpetas de GitHub)
+  const baseUrl = window.location.href.split('?')[0].replace(/\/$/, "");
+
   useEffect(() => {
     if (isOpen) {
       console.log("--- CONFIGURACIÓN GOOGLE CLOUD ---");
@@ -42,7 +44,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, lang, onSuccess 
           email, 
           password,
           options: {
-            emailRedirectTo: window.location.origin
+            emailRedirectTo: baseUrl
           }
         });
         if (error) throw error;
@@ -66,7 +68,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, lang, onSuccess 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: baseUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

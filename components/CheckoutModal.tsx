@@ -13,35 +13,24 @@ interface CheckoutModalProps {
   onSuccess: () => void;
 }
 
-/**
- * CONFIGURACIÓN DE STRIPE FINALIZADA
- * ---------------------------------
- */
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SlkGBQfUgh3jBhatg13IgCPnYn0YtIdtSop9fSsXeYNhskngi52Ud3hjeLxhwT9dxsEQSegCGaomKay2kFOYr9N00KeTSta7e'; 
 
 const STRIPE_PRICE_IDS = {
-  'Pro': 'price_1Spi8UQfUgh3jBhaOJHPg1cq', // Yeanpro $19 USD
-  'Business': 'price_1Spi8zQfUgh3jBhamOhXPbUc', // YeanBusiness $49 USD
+  'Pro': 'price_1Spi8UQfUgh3jBhaOJHPg1cq',
+  'Business': 'price_1Spi8zQfUgh3jBhamOhXPbUc',
   'Free': ''
 };
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, tier, price, lang, onSuccess }) => {
   const [status, setStatus] = useState<'idle' | 'processing' | 'success'>('idle');
   const t = translations[lang].checkout;
+  const baseUrl = window.location.href.split('?')[0].replace(/\/$/, "");
 
   if (!isOpen) return null;
 
   const handleStripeCheckout = async () => {
     setStatus('processing');
     
-    /**
-     * EXPLICACIÓN PARA QUE SEA 100% REAL:
-     * 1. Aquí llamarías a tu servidor: 
-     *    const res = await fetch('/api/create-checkout-session', { method: 'POST', body: JSON.stringify({ priceId: STRIPE_PRICE_IDS[tier] }) });
-     * 2. El servidor devuelve un { sessionId: '...' }
-     * 3. Usas stripe.redirectToCheckout({ sessionId })
-     */
-
     try {
       const stripe = (window as any).Stripe ? (window as any).Stripe(STRIPE_PUBLISHABLE_KEY) : null;
       
@@ -51,16 +40,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, tier, pr
         return;
       }
 
-      // SIMULACIÓN DE LLAMADA AL BACKEND PARA PRODUCCIÓN
-      // En una app real, el servidor te daría una URL como: https://checkout.stripe.com/pay/cs_test_...
-      // Para efectos de este prototipo funcional, simulamos el éxito localmente.
-      
-      console.log(`Llamando al backend ficticio para el Price ID: ${STRIPE_PRICE_IDS[tier as keyof typeof STRIPE_PRICE_IDS]}`);
-      
       await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Simulamos que el usuario vuelve de Stripe con éxito
-      window.location.href = `${window.location.origin}${window.location.pathname}?payment_success=true&tier=${tier}`;
+      window.location.href = `${baseUrl}?payment_success=true&tier=${tier}`;
       
     } catch (error) {
       console.error("Stripe Error:", error);

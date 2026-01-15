@@ -63,6 +63,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const t = translations[lang];
+  const baseUrl = window.location.href.split('?')[0].replace(/\/$/, "");
 
   const refreshCaptcha = useCallback(() => {
     const code = Math.floor(1000 + Math.random() * 9000).toString();
@@ -70,7 +71,6 @@ const App: React.FC = () => {
     setUserCaptcha('');
   }, []);
 
-  // Carga inicial y listeners de Supabase
   useEffect(() => {
     const initApp = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -99,25 +99,23 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Lógica para detectar éxito de pago real al volver de Stripe y actualizar DB
   useEffect(() => {
     const handlePaymentReturn = async () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get('payment_success') === 'true' && user) {
         const tier = params.get('tier') as UserTier;
         if (tier) {
-          // Actualizamos en Supabase
           const { error } = await supabase.from('profiles').update({ tier }).eq('id', user.id);
           if (!error) {
             setUserTier(tier);
-            window.history.replaceState({}, document.title, window.location.pathname);
-            alert(lang === 'es' ? `¡Gracias! Tu plan ${tier} ha sido activado en tu cuenta.` : `Success! Your ${tier} plan is now active.`);
+            window.history.replaceState({}, document.title, baseUrl);
+            alert(lang === 'es' ? `¡Gracias! Tu plan ${tier} ha sido activado.` : `Success! Your ${tier} plan is active.`);
           }
         }
       }
     };
     if (user) handlePaymentReturn();
-  }, [user, lang]);
+  }, [user, lang, baseUrl]);
 
   useEffect(() => {
     refreshCaptcha();
