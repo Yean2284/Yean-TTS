@@ -248,19 +248,19 @@ export const translations = {
       subtitle: 'Experimente a conversão de texto em fala de qualidade profissional com total liberdade comercial.',
       items: [
         { title: 'Sem Registro', desc: 'Comece imediatamente sem contas ou logins.' },
-        { title: 'Licença Comercial', desc: 'Use seus áudios em qualquer lugar con direitos comerciais.' },
-        { title: '580+ Vozes Premium', desc: 'Coleção de vozes naturais.' },
-        { title: 'Uso Ilimitado', desc: 'Gerações diárias generosas.' },
+        { title: 'Licença Comercial', desc: 'Use seus áudios em qualquer lugar com direitos comerciais incluídos.' },
+        { title: '580+ Vozes Premium', desc: 'Colección extensa de voces de IA naturais.' },
+        { title: 'Uso Ilimitado', desc: 'Conversões diárias generosas.' },
         { title: '75+ Idiomas', desc: 'Suporte multilíngue.' },
-        { title: 'Personalização', desc: 'Ajuste tom e velocidade.' }
+        { title: 'Personalização', desc: 'Ajuste o tom e velocidade.' }
       ]
     },
     howTo: {
       title: 'Como usar YeanTexttoSpeechGen',
       steps: [
-        { step: '1', title: 'Insira seu texto', desc: 'Escreva ou cole.' },
-        { step: '2', title: 'Escolha uma voz', desc: 'Selecione na biblioteca.' },
-        { step: '3', title: 'Gere e Baixe', desc: 'Baixe instantaneamente.' }
+        { step: '1', title: 'Insira seu texto', desc: 'Escreva ou cole seu texto.' },
+        { step: '2', title: 'Escolha uma voz', desc: 'Selecione em nossa biblioteca.' },
+        { step: '3', title: 'Gere e Baixe', desc: 'Clique em gerar e baixe.' }
       ]
     },
     pricing: {
@@ -269,24 +269,25 @@ export const translations = {
       plans: {
         Free: { price: '$0', period: 'para sempre', button: 'Plano Atual' },
         Pro: { price: '$19', period: 'por mês', button: 'Melhorar para Pro' },
-        Business: { price: '$49', period: 'por mês', button: 'Obter Business' }
+        Business: { price: '$49', period: 'por mes', button: 'Obtener Business' }
       },
-      alert: 'Redirecionando...'
+      alert: 'Redirecionando para o gateway seguro...'
     },
     faq: {
       title: 'Perguntas Frequentes',
       questions: [
-        { q: 'Posso usar comercialmente?', a: 'Sim.' },
-        { q: 'É gratuito?', a: 'Sim, plano gratuito até 5.000 caracteres.' },
-        { q: 'Preciso de conta?', a: 'Não, mas ajuda a salvar o histórico.' }
+        { q: 'Posso usar comercialmente?', a: 'Sim, todos os áudios incluem licença comercial completa.' },
+        { q: 'É gratuito?', a: 'Sim, plano gratuito de até 5.000 caracteres.' },
+        { q: 'Preciso de conta?', a: 'Não é obrigatório, mas permite salvar na nuvem.' },
+        { q: 'Qual o limite?', a: '5.000 para gratuitos e 20.000 para Pro.' }
       ]
     },
     footer: {
-      desc: 'Transforme texto em fala profissional.',
+      desc: 'Transforme texto em fala profissional com tecnologia de IA avançada da Yean & Truncar.',
       links: 'Links Rápidos',
       legal: 'Legal',
       connect: 'Conecte-se',
-      rights: '© 2025 YeanTexttoSpeechGen Pro.'
+      rights: '© 2025 YeanTexttoSpeechGen Pro. PARTE DA SUITE TRUNCAR APP.'
     }
   }
 };

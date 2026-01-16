@@ -10,7 +10,6 @@ import LegalModal from './components/LegalModal';
 import CheckoutModal from './components/CheckoutModal';
 import AuthModal from './components/AuthModal';
 import { generateSpeech } from './services/geminiTTS';
-import { supabase } from './lib/supabase';
 
 const INITIAL_SETTINGS: VoiceSettings = {
   pitch: 0,
@@ -54,16 +53,15 @@ const App: React.FC = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [checkoutData, setCheckoutData] = useState<{ open: boolean, tier: UserTier, price: string }>({ open: false, tier: 'Free', price: '$0' });
+  const [legalModal, setLegalModal] = useState<{ open: boolean; title: string; content: React.ReactNode }>({ open: false, title: '', content: null });
   const [settings, setSettings] = useState<VoiceSettings>(INITIAL_SETTINGS);
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [history, setHistory] = useState<GeneratedAudio[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [userTier, setUserTier] = useState<UserTier>('Free');
-  const [loading, setLoading] = useState(true);
 
   const t = translations[lang];
-  const baseUrl = window.location.href.split('?')[0].replace(/\/$/, "");
 
   const refreshCaptcha = useCallback(() => {
     const code = Math.floor(1000 + Math.random() * 9000).toString();
@@ -72,55 +70,32 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const initApp = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        setUser({ email: session.user.email, name: session.user.email?.split('@')[0], id: session.user.id });
-        const { data: profile } = await supabase.from('profiles').select('tier').eq('id', session.user.id).single();
-        if (profile) setUserTier(profile.tier as UserTier);
-      }
-      setLoading(false);
-    };
-
-    initApp();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        setUser({ email: session.user.email, name: session.user.email?.split('@')[0], id: session.user.id });
-        const { data: profile } = await supabase.from('profiles').select('tier').eq('id', session.user.id).single();
-        if (profile) setUserTier(profile.tier as UserTier);
-      } else {
-        setUser(null);
-        setUserTier('Free');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const handlePaymentReturn = async () => {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('payment_success') === 'true' && user) {
-        const tier = params.get('tier') as UserTier;
-        if (tier) {
-          const { error } = await supabase.from('profiles').update({ tier }).eq('id', user.id);
-          if (!error) {
-            setUserTier(tier);
-            window.history.replaceState({}, document.title, baseUrl);
-            alert(lang === 'es' ? `¡Gracias! Tu plan ${tier} ha sido activado.` : `Success! Your ${tier} plan is active.`);
-          }
-        }
-      }
-    };
-    if (user) handlePaymentReturn();
-  }, [user, lang, baseUrl]);
-
-  useEffect(() => {
     refreshCaptcha();
     setSelectedVoice({ id: 'gemini-Kore', name: 'Kore (Multilingual)', gender: 'Female', language: 'Multilingual', country: 'Global', isPremium: true });
+    
+    const savedUser = localStorage.getItem('yeantts_user');
+    const savedTier = localStorage.getItem('yeantts_tier');
+    
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      const userHistory = localStorage.getItem(`yeantts_history_${parsedUser.email}`);
+      if (userHistory) setHistory(JSON.parse(userHistory));
+    } else {
+      const guestHistory = localStorage.getItem('yeantts_history_guest');
+      if (guestHistory) setHistory(JSON.parse(guestHistory));
+    }
+
+    if (savedTier) setUserTier(savedTier as UserTier);
   }, [refreshCaptcha]);
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(`yeantts_history_${user.email}`, JSON.stringify(history));
+    } else {
+      localStorage.setItem('yeantts_history_guest', JSON.stringify(history));
+    }
+  }, [history, user]);
 
   const handleGenerate = async () => {
     const charLimit = userTier === 'Free' ? 5000 : 20000;
@@ -168,21 +143,36 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setUserTier('Free');
-    setHistory([]);
+  const handleAuthSuccess = (userData: any) => {
+    setUser(userData);
+    localStorage.setItem('yeantts_user', JSON.stringify(userData));
+    const userHistory = localStorage.getItem(`yeantts_history_${userData.email}`);
+    if (userHistory) setHistory(JSON.parse(userHistory));
+    else setHistory([]);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-        <Loader2 className="animate-spin text-black mb-4" size={48} />
-        <p className="font-black uppercase tracking-[0.2em] text-xs">Cargando Yean TTS...</p>
-      </div>
-    );
-  }
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('yeantts_user');
+    setHistory([]);
+    setUserTier('Free');
+    localStorage.setItem('yeantts_tier', 'Free');
+  };
+
+  const handleUpgradeSuccess = () => {
+    setUserTier(checkoutData.tier);
+    localStorage.setItem('yeantts_tier', checkoutData.tier);
+    setActiveTab(Tab.VoiceSelection);
+    // Nota: Aquí se llamaría a Supabase para actualizar el tier en la DB
+  };
+
+  const scrollToSection = (id: string) => {
+    setActiveTab(Tab.VoiceSelection);
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
 
   return (
     <div className="min-h-screen bg-[#fcfcfc] flex flex-col font-sans selection:bg-black selection:text-white">
@@ -205,6 +195,7 @@ const App: React.FC = () => {
           </div>
           
           <div className="hidden md:flex items-center gap-8">
+             <button onClick={() => scrollToSection('features')} className="text-sm font-bold text-gray-500 hover:text-black transition-colors">{t.nav.features}</button>
              <button onClick={() => setActiveTab(Tab.Pricing)} className={`text-sm font-bold ${activeTab === Tab.Pricing ? 'text-black' : 'text-gray-500'}`}>{t.nav.pricing}</button>
           </div>
 
@@ -224,7 +215,7 @@ const App: React.FC = () => {
                 <div className="relative group">
                   <button className="flex items-center gap-3 bg-gray-50 border border-gray-100 pl-2 pr-4 py-1.5 rounded-full hover:bg-gray-100 transition-all">
                     <div className="w-8 h-8 bg-black text-white flex items-center justify-center rounded-full text-xs font-black">
-                      {user.name?.charAt(0)}
+                      {user.name.charAt(0)}
                     </div>
                     <span className="text-xs font-black hidden sm:block text-black">{user.name}</span>
                     <ChevronDown size={14} className="text-gray-400 group-hover:rotate-180 transition-transform" />
@@ -281,7 +272,7 @@ const App: React.FC = () => {
                    {plan.isPopular && <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-8 py-2 rounded-full tracking-widest shadow-xl">Most Popular</div>}
                    <h3 className="text-3xl font-black mb-2 text-black">{plan.name}</h3>
                    <div className="flex items-baseline gap-1 mb-10">
-                     <span className="text-6xl font-black tracking-tighter text-black">{plan.price}</span>
+                     <span className="text-6xl font-black tracking-tighter text-black">{t.pricing.plans[plan.name as keyof typeof t.pricing.plans].price}</span>
                      <span className="text-gray-400 text-sm font-bold">/{t.pricing.plans[plan.name as keyof typeof t.pricing.plans].period}</span>
                    </div>
                    <ul className="space-y-5 mb-12 flex-1">
@@ -372,15 +363,23 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} lang={lang} onSuccess={() => {}} />
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} lang={lang} onSuccess={handleAuthSuccess} />
       <VoiceEffectsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} settings={settings} onSave={setSettings} onInsertPause={(p) => setText(t => t + ` [pause:${p}]`)} />
-      <CheckoutModal isOpen={checkoutData.open} onClose={() => setCheckoutData(p => ({ ...p, open: false }))} tier={checkoutData.tier} price={checkoutData.price} lang={lang} onSuccess={() => {}} />
+      <LegalModal isOpen={legalModal.open} onClose={() => setLegalModal(p => ({ ...p, open: false }))} title={legalModal.title} content={legalModal.content} />
+      <CheckoutModal isOpen={checkoutData.open} onClose={() => setCheckoutData(p => ({ ...p, open: false }))} tier={checkoutData.tier} price={checkoutData.price} lang={lang} onSuccess={handleUpgradeSuccess} />
 
       <footer className="bg-white border-t py-24 px-4 mt-auto">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-20">
           <div className="col-span-1">
              <div className="flex items-center gap-2 mb-10"><div className="bg-black p-2 rounded-xl"><Play className="text-white fill-current" size={16} /></div><h1 className="text-3xl font-black tracking-tighter text-black">YEAN</h1></div>
              <p className="text-sm text-gray-400 leading-relaxed font-bold">{t.footer.desc}</p>
+          </div>
+          <div>
+            <h4 className="font-black text-sm mb-10 uppercase tracking-[0.3em] text-gray-900">{t.footer.links}</h4>
+            <ul className="space-y-5 text-sm font-black text-gray-400">
+              <li onClick={() => scrollToSection('features')} className="hover:text-black cursor-pointer transition-colors">{t.nav.features}</li>
+              <li onClick={() => setActiveTab(Tab.Pricing)} className="hover:text-black cursor-pointer transition-colors">{t.nav.pricing}</li>
+            </ul>
           </div>
         </div>
       </footer>
